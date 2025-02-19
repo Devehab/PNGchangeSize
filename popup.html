@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Image to PNG Converter</title>
+  <style>
+    body {
+      width: 400px;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #dropZone {
+      border: 2px dashed #2196f3;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      background-color: #f8f9fa;
+    }
+    #dropZone.dragover {
+      background-color: #e3f2fd;
+      border-color: #1976d2;
+    }
+    #dropZone:hover {
+      background-color: #e3f2fd;
+    }
+    .sizes-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .size-option {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .size-option input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+    button {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #1976d2;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    #status {
+      color: #666;
+      margin-top: 10px;
+      text-align: center;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    h2 {
+      margin: 0;
+      color: #1976d2;
+      font-size: 1.2em;
+    }
+    .preview-container {
+      text-align: center;
+      margin-top: 10px;
+    }
+    #imagePreview {
+      max-width: 128px;
+      max-height: 128px;
+      display: none;
+      margin: 0 auto;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>IconResizer Pro</h2>
+    <div id="dropZone">
+      Drop image here or click to select
+      <input type="file" id="fileInput" accept="image/*" style="display: none">
+    </div>
+    <div class="preview-container">
+      <img id="imagePreview" alt="Preview">
+    </div>
+    <div>
+      <h2>Select Sizes</h2>
+      <div class="sizes-container" id="sizesContainer">
+        <!-- Sizes will be added via JavaScript -->
+      </div>
+    </div>
+    <button id="convertButton" disabled>Convert and Download</button>
+    <div id="status"></div>
+  </div>
+  <script src="lib/jszip.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
