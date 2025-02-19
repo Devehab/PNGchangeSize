@@ -7,6 +7,97 @@ document.addEventListener('DOMContentLoaded', function() {
   const sizesContainer = document.getElementById('sizesContainer');
   let selectedFile = null;
 
+  // Check for context menu selected image
+  chrome.storage.local.get(['selectedImageUrl'], function(result) {
+    if (result.selectedImageUrl) {
+      fetchAndProcessImage(result.selectedImageUrl);
+      chrome.storage.local.remove('selectedImageUrl');
+    }
+  });
+
+  // Function to fetch image using XMLHttpRequest
+  function fetchImageAsBlob(url) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.responseType = 'blob';
+      
+      xhr.onload = function() {
+        if (this.status === 200) {
+          resolve(this.response);
+        } else {
+          reject(new Error('Failed to load image'));
+        }
+      };
+      
+      xhr.onerror = function() {
+        reject(new Error('Network error'));
+      };
+      
+      xhr.send();
+    });
+  }
+
+  // Function to load image from blob
+  function loadImageFromBlob(blob) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(blob);
+      
+      img.onload = function() {
+        URL.revokeObjectURL(objectUrl);
+        resolve(img);
+      };
+      
+      img.onerror = function() {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to create image from blob'));
+      };
+      
+      img.src = objectUrl;
+    });
+  }
+
+  // Function to convert image to PNG
+  async function convertToPNG(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, 'image/png');
+    });
+  }
+
+  // Function to fetch and process image from URL
+  async function fetchAndProcessImage(url) {
+    try {
+      status.textContent = 'Loading image...';
+      
+      // Fetch the image as blob
+      const blob = await fetchImageAsBlob(url);
+      
+      // Load the image
+      const img = await loadImageFromBlob(blob);
+      
+      // Convert to PNG
+      const pngBlob = await convertToPNG(img);
+      
+      // Create file and process it
+      const file = new File([pngBlob], 'image.png', { type: 'image/png' });
+      processFile(file);
+      
+    } catch (error) {
+      console.error('Error processing image:', error);
+      status.textContent = 'Error loading image. Please try again.';
+      status.className = 'error';
+    }
+  }
+
   // Define available sizes
   const availableSizes = [
     16, 32, 48, 64, 96, 128, 256, 512
@@ -65,18 +156,83 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  function handleFile(file) {
-    selectedFile = file;
-    status.textContent = `Selected: ${file.name}`;
-    status.className = '';
-    convertButton.disabled = false;
+  // Handle paste events
+  document.addEventListener('paste', async (e) => {
+    e.preventDefault();
+    
+    const items = e.clipboardData.items;
+    let imageItem = null;
+    
+    // Look for an image in the clipboard
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        imageItem = items[i];
+        break;
+      }
+    }
+    
+    if (imageItem) {
+      const blob = imageItem.getAsFile();
+      if (blob) {
+        // Create a File object from the blob
+        const file = new File([blob], 'pasted-image.png', { type: 'image/png' });
+        handleFile(file);
+      }
+    } else {
+      // Check if there's a URL in the clipboard
+      const text = e.clipboardData.getData('text');
+      if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+        // Check if it's an image URL
+        if (text.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)) {
+          fetchAndProcessImage(text);
+        }
+      }
+    }
+  });
 
-    // Show image preview
+  // Add paste instruction to dropZone
+  dropZone.addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  // Focus the window to enable paste
+  window.focus();
+
+  // Handle file selection
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) {
+      status.textContent = 'Please select an image file.';
+      status.className = 'error';
+      return;
+    }
+
+    selectedFile = file;
     const reader = new FileReader();
-    reader.onload = (e) => {
+
+    reader.onload = function(e) {
       imagePreview.src = e.target.result;
       imagePreview.style.display = 'block';
+      status.textContent = `Selected: ${file.name}`;
+      status.className = '';
+      convertButton.disabled = false;
     };
+
+    reader.readAsDataURL(file);
+  }
+
+  // Process the file after any necessary conversion
+  function processFile(file) {
+    selectedFile = file;
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      imagePreview.src = e.target.result;
+      imagePreview.style.display = 'block';
+      status.textContent = `Selected: ${file.name}`;
+      status.className = '';
+      convertButton.disabled = false;
+    };
+
     reader.readAsDataURL(file);
   }
 

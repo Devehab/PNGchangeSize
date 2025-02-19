@@ -27,3 +27,5 @@ logs/
 
 # Cache
 .cache/
+
+RELEASES.md
